@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "CloudFormation Template to deploy an EC2 instance with parameterized values"
+
+Parameters:
+  InstanceType:
+    Description: "EC2 instance type"
+    Type: String
+    Default: "t2.micro"
+    AllowedValues:
+      - "t2.micro"
+      - "t2.small"
+      - "t2.medium"
+      - "t3.micro"
+      - "t3.small"
+      - "t3.medium"
+      - "t3.large"
+    ConstraintDescription: "Must be a valid EC2 instance type."
+
+  KeyPairName:
+    Description: "The name of the key pair to allow SSH access"
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
+
+  AMIId:
+    Description: "The AMI ID for the instance"
+    Type: String  # Change from AWS::SSM::Parameter::Value<AWS::EC2::Image::Id> to String
+    Default: "ami-06744fbd0847bf4f5"
+    ConstraintDescription: "Must be a valid AMI ID."
+
+  SSHIngressIP:
+    Description: "The IP address range to allow SSH access (e.g., 192.168.1.0/24)"
+    Type: String
+    Default: "0.0.0.0/0"
+    AllowedPattern: "(\\d{1,3}\\.){3}\\d{1,3}/\\d{1,2}"
+    ConstraintDescription: "Must be a valid CIDR range."
+
+Resources:
+  MyEC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      ImageId: !Ref AMIId
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      Tags:
+        - Key: "Name"
+          Value: "MyEC2Instance"
+
+  InstanceSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Enable SSH access"
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHIngressIP
+
+Outputs:
+  InstanceId:
+    Description: "The Instance ID"
+    Value: !Ref MyEC2Instance
+  InstancePublicIP:
+    Description: "The Public IP of the instance"
+    Value: !GetAtt MyEC2Instance.PublicIp
